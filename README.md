@@ -56,7 +56,16 @@ flowchart LR
     date[dim_date] --> fact
     time[dim_time] --> fact
 ```
+## Technical highlights
 
+- Built a PostgreSQL data warehouse using raw, staging, and warehouse schemas
+- Designed a star schema with six dimensions and a sales fact table
+- Loaded dimension tables using surrogate keys and connected them to `fact_sales`
+- Added data quality and source-to-warehouse reconciliation checks
+- Created reporting views for sales, branch, and monthly performance
+- Used joins, CTEs, window functions, and aggregations for analysis
+- Added indexes on fact-table foreign keys
+- Used `ANALYZE` and `EXPLAIN ANALYZE` to review query performance
 
 
 ## Data quality checks
