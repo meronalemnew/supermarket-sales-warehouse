@@ -45,6 +45,18 @@ The warehouse is built around one sales fact table and six dimension tables.
 The grain of `fact_sales` is one row per invoice transaction.
 
 
+## Star schema
+
+```mermaid
+flowchart LR
+    branch[dim_branch] --> fact[fact_sales]
+    product[dim_product_line] --> fact
+    customer[dim_customer_segment] --> fact
+    payment[dim_payment] --> fact
+    date[dim_date] --> fact
+    time[dim_time] --> fact
+    
+
 ## Data quality checks
 
 Before loading the warehouse, I checked the data for:
