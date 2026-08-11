@@ -55,7 +55,6 @@ flowchart LR
     payment[dim_payment] --> fact
     date[dim_date] --> fact
     time[dim_time] --> fact
-    
 
 ## Data quality checks
 
