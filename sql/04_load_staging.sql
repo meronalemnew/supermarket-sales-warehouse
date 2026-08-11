@@ -18,21 +18,26 @@ INSERT INTO staging.supermarket_sales_clean (
     rating
 )
 SELECT
-    BTRIM(invoice_id),
-    BTRIM(branch),
-    BTRIM(city),
-    BTRIM(customer_type),
-    BTRIM(gender),
-    BTRIM(product_line),
-    unit_price::NUMERIC(10, 2),
-    quantity::INTEGER,
-    tax_5_percent::NUMERIC(12, 4),
-    total::NUMERIC(12, 4),
-    TO_DATE(sale_date, 'MM/DD/YYYY'),
-    sale_time::TIME,
-    BTRIM(payment),
-    cogs::NUMERIC(12, 2),
-    gross_margin_percentage::NUMERIC(12, 9),
-    gross_income::NUMERIC(12, 4),
-    rating::NUMERIC(3, 1)
-FROM raw.supermarket_sales;
+    BTRIM(r.invoice_id),
+    BTRIM(r.branch),
+    BTRIM(r.city),
+    BTRIM(r.customer_type),
+    BTRIM(r.gender),
+    BTRIM(r.product_line),
+    r.unit_price::NUMERIC(10, 2),
+    r.quantity::INTEGER,
+    r.tax_5_percent::NUMERIC(12, 4),
+    r.total::NUMERIC(12, 4),
+    TO_DATE(r.sale_date, 'MM/DD/YYYY'),
+    r.sale_time::TIME,
+    BTRIM(r.payment),
+    r.cogs::NUMERIC(12, 2),
+    r.gross_margin_percentage::NUMERIC(12, 9),
+    r.gross_income::NUMERIC(12, 4),
+    r.rating::NUMERIC(3, 1)
+FROM raw.supermarket_sales r
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM staging.supermarket_sales_clean s
+    WHERE s.invoice_id = BTRIM(r.invoice_id)
+);

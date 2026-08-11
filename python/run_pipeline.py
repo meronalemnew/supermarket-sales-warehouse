@@ -1,13 +1,15 @@
-from load_raw import load_raw_data
+import sys
+
+from load_raw_incremental import load_incremental_raw
 from load_staging import load_staging
 from load_warehouse import load_warehouse
 from quality_checks import run_quality_checks
 
 
-def run_pipeline():
+def run_pipeline(csv_path):
     print("Starting supermarket data pipeline...\n")
 
-    load_raw_data()
+    load_incremental_raw(csv_path)
     print()
 
     load_staging()
@@ -23,4 +25,11 @@ def run_pipeline():
 
 
 if __name__ == "__main__":
-    run_pipeline()
+    if len(sys.argv) != 2:
+        print(
+            "Usage: python python/run_pipeline.py "
+            "<csv_file>"
+        )
+        sys.exit(1)
+
+    run_pipeline(sys.argv[1])

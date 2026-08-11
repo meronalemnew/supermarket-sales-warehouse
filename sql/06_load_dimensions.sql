@@ -1,3 +1,4 @@
+-- Branch dimension
 INSERT INTO warehouse.dim_branch (
     branch_code,
     city
@@ -5,17 +6,21 @@ INSERT INTO warehouse.dim_branch (
 SELECT DISTINCT
     branch,
     city
-FROM staging.supermarket_sales_clean;
+FROM staging.supermarket_sales_clean
+ON CONFLICT (branch_code, city) DO NOTHING;
 
 
+-- Product line dimension
 INSERT INTO warehouse.dim_product_line (
     product_line
 )
 SELECT DISTINCT
     product_line
-FROM staging.supermarket_sales_clean;
+FROM staging.supermarket_sales_clean
+ON CONFLICT (product_line) DO NOTHING;
 
 
+-- Customer segment dimension
 INSERT INTO warehouse.dim_customer_segment (
     customer_type,
     gender
@@ -23,17 +28,21 @@ INSERT INTO warehouse.dim_customer_segment (
 SELECT DISTINCT
     customer_type,
     gender
-FROM staging.supermarket_sales_clean;
+FROM staging.supermarket_sales_clean
+ON CONFLICT (customer_type, gender) DO NOTHING;
 
 
+-- Payment dimension
 INSERT INTO warehouse.dim_payment (
     payment_method
 )
 SELECT DISTINCT
     payment
-FROM staging.supermarket_sales_clean;
+FROM staging.supermarket_sales_clean
+ON CONFLICT (payment_method) DO NOTHING;
 
 
+-- Date dimension
 INSERT INTO warehouse.dim_date (
     date_key,
     full_date,
@@ -53,9 +62,11 @@ SELECT DISTINCT
     EXTRACT(QUARTER FROM sale_date)::INTEGER,
     EXTRACT(YEAR FROM sale_date)::INTEGER,
     TO_CHAR(sale_date, 'FMDay')
-FROM staging.supermarket_sales_clean;
+FROM staging.supermarket_sales_clean
+ON CONFLICT (date_key) DO NOTHING;
 
 
+-- Time dimension
 INSERT INTO warehouse.dim_time (
     time_key,
     full_time,
@@ -73,4 +84,5 @@ SELECT DISTINCT
         WHEN EXTRACT(HOUR FROM sale_time) < 17 THEN 'Afternoon'
         ELSE 'Evening'
     END
-FROM staging.supermarket_sales_clean;
+FROM staging.supermarket_sales_clean
+ON CONFLICT (time_key) DO NOTHING;

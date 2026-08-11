@@ -13,6 +13,7 @@ load_dotenv(project_root / ".env")
 
 def load_staging():
     connection = None
+    cursor = None
 
     try:
         print("Connecting to PostgreSQL...")
@@ -29,21 +30,18 @@ def load_staging():
 
         print("Connected successfully.")
 
-        # Clear the staging table before reloading it
-        cursor.execute(
-            "TRUNCATE TABLE staging.supermarket_sales_clean;"
-        )
-
-        # Read the SQL transformation file
+        # Read the staging transformation SQL
         with open(sql_path, "r", encoding="utf-8") as sql_file:
             staging_sql = sql_file.read()
 
-        print("Transforming raw data into staging...")
+        print("Transforming new raw rows into staging...")
 
-        # Execute the SQL from 04_load_staging.sql
+        # Insert only rows that are not already in staging
         cursor.execute(staging_sql)
 
-        # Validate the staging load
+        inserted_rows = cursor.rowcount
+
+        # Validate the staging table
         cursor.execute("""
             SELECT
                 COUNT(*) AS total_rows,
@@ -56,10 +54,9 @@ def load_staging():
         connection.commit()
 
         print("Staging load complete.")
+        print(f"New staging rows inserted: {inserted_rows}")
         print(f"Total staging rows: {total_rows}")
         print(f"Unique invoices: {unique_invoices}")
-
-        cursor.close()
 
     except Exception as error:
         if connection:
@@ -70,6 +67,9 @@ def load_staging():
         raise
 
     finally:
+        if cursor:
+            cursor.close()
+
         if connection:
             connection.close()
 

@@ -15,6 +15,7 @@ load_dotenv(project_root / ".env")
 
 def load_warehouse():
     connection = None
+    cursor = None
 
     try:
         print("Connecting to PostgreSQL...")
@@ -30,32 +31,32 @@ def load_warehouse():
         cursor = connection.cursor()
 
         print("Connected successfully.")
-        print("Clearing warehouse tables...")
 
-        cursor.execute("""
-            TRUNCATE TABLE
-                warehouse.fact_sales,
-                warehouse.dim_branch,
-                warehouse.dim_product_line,
-                warehouse.dim_customer_segment,
-                warehouse.dim_payment,
-                warehouse.dim_date,
-                warehouse.dim_time
-            RESTART IDENTITY;
-        """)
-
-        with open(dimensions_sql_path, "r", encoding="utf-8") as sql_file:
+        # Load any new dimension values
+        with open(
+            dimensions_sql_path,
+            "r",
+            encoding="utf-8"
+        ) as sql_file:
             dimensions_sql = sql_file.read()
 
-        print("Loading dimensions...")
+        print("Loading new dimension values...")
         cursor.execute(dimensions_sql)
 
-        with open(fact_sql_path, "r", encoding="utf-8") as sql_file:
+        # Load only new fact rows
+        with open(
+            fact_sql_path,
+            "r",
+            encoding="utf-8"
+        ) as sql_file:
             fact_sql = sql_file.read()
 
-        print("Loading fact_sales...")
+        print("Loading new fact rows...")
         cursor.execute(fact_sql)
 
+        new_fact_rows = cursor.rowcount
+
+        # Validate fact table
         cursor.execute("""
             SELECT
                 COUNT(*) AS fact_rows,
@@ -68,10 +69,9 @@ def load_warehouse():
         connection.commit()
 
         print("Warehouse load complete.")
-        print(f"Fact rows: {fact_rows}")
+        print(f"New fact rows inserted: {new_fact_rows}")
+        print(f"Total fact rows: {fact_rows}")
         print(f"Unique invoices: {unique_invoices}")
-
-        cursor.close()
 
     except Exception as error:
         if connection:
@@ -82,6 +82,9 @@ def load_warehouse():
         raise
 
     finally:
+        if cursor:
+            cursor.close()
+
         if connection:
             connection.close()
 

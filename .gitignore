@@ -3,3 +3,4 @@
 data/supermarket_sales_clean.csv
 .env
 .venv/
+data/incoming/*.csv
