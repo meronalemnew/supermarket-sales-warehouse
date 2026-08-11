@@ -58,6 +58,19 @@ Quantity reconciled: 5510
 Gross income reconciled: 15379.3690
 Missing dimension keys: 0
 ```
+### Incremental loading
+
+The pipeline also supports incremental loads.
+
+Incoming sales files are checked against existing invoice IDs so that only new transactions move through the pipeline. The same file can be processed more than once without creating duplicate records.
+
+I tested the pipeline with two batches:
+
+- initial load: 990 transactions
+- second load: 10 new transactions
+- second file rerun: 0 additional transactions
+
+After the final run, the warehouse remained at 1,000 unique invoices and all data quality checks passed.
 
 ## Warehouse tables
 
