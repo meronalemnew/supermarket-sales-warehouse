@@ -1,49 +1,92 @@
 # Supermarket Sales Data Warehouse
 
-This is a hands-on data engineering project built with a public supermarket sales dataset.
+I built this project using a public supermarket sales dataset with 1,000 transactions from three branches.
 
-I used PostgreSQL and DBeaver to build a small data warehouse from the ground up. The goal was to practice the full workflow: loading raw data, checking data quality, cleaning and transforming it, building fact and dimension tables, validating the warehouse, and writing reporting queries.
+I started by loading the data into PostgreSQL, then separated it into raw, staging, and warehouse layers. From there, I built a star schema, added data quality checks, created reporting views, and wrote SQL queries to analyze the sales data.
 
-The dataset contains 1,000 sales transactions from three supermarket branches.
+After building the warehouse manually, I added Python scripts so the full load can now run from one command.
 
 ## Project workflow
 
 The project follows this flow:
 
-CSV file  
-→ raw layer  
-→ staging layer  
-→ dimension tables  
-→ fact table  
-→ data quality checks  
-→ reporting views  
-→ analysis
+```text
+CSV file
+→ raw layer
+→ staging layer
+→ dimension tables
+→ fact table
+→ data quality checks
+→ reporting and analysis
+```
 
-The raw layer keeps the source data as close to the original file as possible.
+The raw layer keeps the source data close to how it arrived.
 
-The staging layer cleans the data and converts columns into the right data types.
+The staging layer cleans the data and converts the columns into the right data types.
 
-The warehouse layer contains the fact and dimension tables used for reporting and analysis.
+The warehouse layer organizes the data into fact and dimension tables so it is easier to query and report on.
+
+## Automated pipeline
+
+The first version of the project was loaded manually. I later added Python scripts to automate the same process.
+
+The automated flow is:
+
+```text
+CSV
+→ raw.supermarket_sales
+→ staging.supermarket_sales_clean
+→ dimensions
+→ fact_sales
+→ data quality checks
+```
+
+The full pipeline runs with:
+
+```bash
+python python/run_pipeline.py
+```
+
+At the end of the run, it checks that the row counts and main business totals still match.
+
+A successful run currently gives:
+
+```text
+Rows reconciled: 1000
+Revenue reconciled: 322966.7490
+Quantity reconciled: 5510
+Gross income reconciled: 15379.3690
+Missing dimension keys: 0
+```
 
 ## Warehouse tables
 
-The warehouse is built around one sales fact table and six dimension tables.
+The warehouse has one fact table and six dimension tables.
 
 ### Dimensions
 
-- `dim_branch` — branch and city information
-- `dim_product_line` — product category information
+- `dim_branch` — branch and city
+- `dim_product_line` — product category
 - `dim_customer_segment` — customer type and gender
-- `dim_payment` — payment methods
-- `dim_date` — calendar attributes for each sale date
-- `dim_time` — transaction time and time-of-day category
+- `dim_payment` — payment method
+- `dim_date` — date attributes
+- `dim_time` — time and time-of-day attributes
 
 ### Fact table
 
-- `fact_sales` — stores one row per invoice transaction, along with the measures used for reporting such as quantity, total, COGS, gross income, and rating
+`fact_sales` stores one row per invoice transaction.
 
-The grain of `fact_sales` is one row per invoice transaction.
+It contains the dimension keys along with measures such as:
 
+- quantity
+- unit price
+- tax
+- total
+- COGS
+- gross income
+- rating
+
+The grain of `fact_sales` is **one row per invoice transaction**.
 
 ## Star schema
 
@@ -56,32 +99,33 @@ flowchart LR
     date[dim_date] --> fact
     time[dim_time] --> fact
 ```
+
 ## Technical highlights
 
-- Built a PostgreSQL data warehouse using raw, staging, and warehouse schemas
-- Designed a star schema with six dimensions and a sales fact table
-- Loaded dimension tables using surrogate keys and connected them to `fact_sales`
-- Added data quality and source-to-warehouse reconciliation checks
-- Created reporting views for sales, branch, and monthly performance
-- Used joins, CTEs, window functions, and aggregations for analysis
-- Added indexes on fact-table foreign keys
-- Used `ANALYZE` and `EXPLAIN ANALYZE` to review query performance
-
+- Built raw, staging, and warehouse schemas in PostgreSQL
+- Designed a star schema with six dimensions and one fact table
+- Used surrogate keys and foreign keys to connect the warehouse tables
+- Profiled and checked the source data before loading the warehouse
+- Compared staging and warehouse totals after the load
+- Created reusable reporting views
+- Used joins, CTEs, window functions, aggregations, and ranking functions
+- Added indexes to the fact table
+- Used `ANALYZE` and `EXPLAIN ANALYZE` to look at query performance
+- Added Python scripts to automate the warehouse load
 
 ## Data quality checks
 
-Before loading the warehouse, I checked the data for:
+Before building the warehouse, I checked for:
 
 - missing invoice IDs
 - duplicate invoices
 - invalid quantities
-- invalid prices
-- invalid totals
+- invalid prices and totals
 - ratings outside the expected range
 - inconsistent branch and city combinations
 - incorrect COGS, tax, total, and gross income calculations
 
-After loading the warehouse, I compared the staging and fact tables to make sure the data was not lost or duplicated.
+After loading the warehouse, I compared the staging table with `fact_sales`.
 
 The final checks matched:
 
@@ -92,27 +136,39 @@ The final checks matched:
 - gross income: 15,379.3690
 - no missing foreign keys
 
+These checks now also run automatically at the end of the Python pipeline.
+
 ## A few things I found
 
-Some of the analysis showed that:
+Some of the SQL analysis showed that:
 
 - Branch C in Naypyitaw had the highest total revenue
-- Food and beverages was the highest-revenue product line overall
-- Afternoon was the busiest time of day across all three branches
-- The top product category was different for each branch
-- Ewallet had the highest transaction count, while Cash generated the highest revenue
-- January had the highest monthly revenue, followed by March and then February
+- Food and beverages had the highest overall product-line revenue
+- Afternoon was the busiest time of day
+- The highest-revenue product category was different for each branch
+- Ewallet had the most transactions, while Cash generated the most revenue
+- January had the highest monthly revenue
+- Member/Female was the highest-revenue customer segment
 
-These results came from SQL queries built on top of the fact and dimension tables rather than directly from the raw CSV.
+These results were queried from the warehouse rather than directly from the CSV.
+
+## Reporting views
+
+I created a few views to make common queries easier:
+
+- `vw_sales_detail`
+- `vw_branch_performance`
+- `vw_monthly_performance`
 
 ## Tools used
 
 - PostgreSQL
-- DBeaver
+- Python
 - SQL
+- DBeaver
 - VS Code
-
-PostgreSQL was used to build and store the warehouse, DBeaver was used to work with the database, and VS Code was used to organize the SQL scripts and project files.
+- Git
+- GitHub
 
 ## Project structure
 
@@ -120,27 +176,66 @@ PostgreSQL was used to build and store the warehouse, DBeaver was used to work w
 supermarket-sales-warehouse/
 ├── data/
 │   └── README.md
+├── python/
+│   ├── load_raw.py
+│   ├── load_staging.py
+│   ├── load_warehouse.py
+│   ├── quality_checks.py
+│   └── run_pipeline.py
 ├── sql/
-│   └── numbered SQL scripts for setup, loading, validation, reporting, and performance
+│   └── numbered SQL scripts for setup, loading, validation, reporting, analysis, and performance
 ├── docs/
 │   ├── data_dictionary.md
 │   └── star_schema.md
+├── .env.example
+├── requirements.txt
 └── README.md
 ```
+
 ## How to run the project
 
-1. Create a PostgreSQL database called `supermarket_dw`.
-2. Run the SQL files in the `sql` folder in number order.
-3. Load `data/supermarket_sales_clean.csv` into `raw.supermarket_sales`.
-4. Run the staging and warehouse load scripts.
-5. Run `09_quality_checks.sql` to confirm the warehouse totals match.
-6. Use the reporting views or queries in `12_analysis.sql` to explore the data.
+Create a PostgreSQL database called:
 
+```text
+supermarket_dw
+```
+
+Run the SQL setup files to create the schemas and tables.
+
+The source dataset is not included in the repository. See `data/README.md` for the dataset information.
+
+Create a virtual environment:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+Install the required packages:
+
+```bash
+pip install -r requirements.txt
+```
+
+Create a local `.env` file using `.env.example` as a guide.
+
+Then run:
+
+```bash
+python python/run_pipeline.py
+```
+
+This loads the raw data, builds the staging and warehouse tables, and runs the final quality checks.
 
 ## Dataset
 
 This project uses a public supermarket sales dataset with 1,000 transactions from three branches.
 
-The data includes branch, city, customer type, gender, product line, unit price, quantity, tax, total, date, time, payment method, COGS, gross income, and rating.
+I renamed the source column headers to `snake_case` before loading the file into PostgreSQL.
 
-The dataset is used only for learning and portfolio purposes.
+The dataset itself is not included in this repository.
+
+## Documentation
+
+- [Data dictionary](docs/data_dictionary.md)
+- [Star schema](docs/star_schema.md)
