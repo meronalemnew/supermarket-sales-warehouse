@@ -117,25 +117,19 @@ PostgreSQL was used to build and store the warehouse, DBeaver was used to work w
 ## Project structure
 
 ```text
+## Project structure
+
+```text
 supermarket-sales-warehouse/
 ├── data/
 │   └── supermarket_sales_clean.csv
 ├── sql/
-│   ├── 01_setup.sql
-│   ├── 02_raw_table.sql
-│   ├── 03_staging_table.sql
-│   ├── 04_load_staging.sql
-│   ├── 05_create_dimensions.sql
-│   ├── 06_load_dimensions.sql
-│   ├── 07_create_fact_sales.sql
-│   ├── 08_load_fact_sales.sql
-│   ├── 09_quality_checks.sql
-│   ├── 10_reporting_views.sql
-│   ├── 11_indexes.sql
-│   └── 12_analysis.sql
+│   └── numbered SQL scripts for setup, loading, validation, reporting, and performance
 ├── docs/
-│   └── data_dictionary.md
+│   ├── data_dictionary.md
+│   └── star_schema.md
 └── README.md
+```
 
 ## How to run the project
 
