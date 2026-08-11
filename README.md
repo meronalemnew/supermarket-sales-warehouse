@@ -117,12 +117,9 @@ PostgreSQL was used to build and store the warehouse, DBeaver was used to work w
 ## Project structure
 
 ```text
-## Project structure
-
-```text
 supermarket-sales-warehouse/
 ├── data/
-│   └── supermarket_sales_clean.csv
+│   └── README.md
 ├── sql/
 │   └── numbered SQL scripts for setup, loading, validation, reporting, and performance
 ├── docs/
@@ -130,7 +127,6 @@ supermarket-sales-warehouse/
 │   └── star_schema.md
 └── README.md
 ```
-
 ## How to run the project
 
 1. Create a PostgreSQL database called `supermarket_dw`.
