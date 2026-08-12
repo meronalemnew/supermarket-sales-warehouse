@@ -1,105 +1,51 @@
 # Supermarket Sales Data Warehouse
 
-I built this project using a public supermarket sales dataset with 1,000 transactions from three branches.
+A PostgreSQL data warehouse built from a public supermarket sales dataset with 1,000 transactions across three branches.
 
-I started by loading the data into PostgreSQL, then separated it into raw, staging, and warehouse layers. From there, I built a star schema, added data quality checks, created reporting views, and wrote SQL queries to analyze the sales data.
+The project covers the full flow from raw ingestion to reporting, with incremental loading, automated data quality checks, and Airflow orchestration.
 
-After building the warehouse manually, I added Python scripts so the full load can now run from one command.
-
-## Project workflow
-
-The project follows this flow:
+## Architecture
 
 ```text
-CSV file
-→ raw layer
-→ staging layer
-→ dimension tables
-→ fact table
-→ data quality checks
-→ reporting and analysis
+Incoming CSV
+→ Raw
+→ Staging
+→ Dimensions
+→ Fact table
+→ Data quality checks
+→ Reporting
 ```
 
-The raw layer keeps the source data close to how it arrived.
+Airflow manages the workflow, detects incoming files, runs the pipeline, and moves successfully processed files to a processed folder.
 
-The staging layer cleans the data and converts the columns into the right data types.
+## What it does
 
-The warehouse layer organizes the data into fact and dimension tables so it is easier to query and report on.
+* Loads sales data into PostgreSQL
+* Separates raw, staging, and warehouse layers
+* Uses incremental loading based on `invoice_id`
+* Prevents duplicate transactions when files are reprocessed
+* Builds a star schema with one fact table and six dimensions
+* Runs source-to-warehouse reconciliation checks
+* Creates reusable reporting views
+* Uses Airflow for scheduling, retries, file sensing, task dependencies, and logging
+* Archives processed files after a successful run
 
-## Automated pipeline
-
-The first version of the project was loaded manually. I later added Python scripts to automate the same process.
-
-The automated flow is:
-
-```text
-CSV
-→ raw.supermarket_sales
-→ staging.supermarket_sales_clean
-→ dimensions
-→ fact_sales
-→ data quality checks
-```
-
-The full pipeline runs with:
-
-```bash
-python python/run_pipeline.py
-```
-
-At the end of the run, it checks that the row counts and main business totals still match.
-
-A successful run currently gives:
-
-```text
-Rows reconciled: 1000
-Revenue reconciled: 322966.7490
-Quantity reconciled: 5510
-Gross income reconciled: 15379.3690
-Missing dimension keys: 0
-```
-### Incremental loading
-
-The pipeline also supports incremental loads.
-
-Incoming sales files are checked against existing invoice IDs so that only new transactions move through the pipeline. The same file can be processed more than once without creating duplicate records.
-
-I tested the pipeline with two batches:
-
-- initial load: 990 transactions
-- second load: 10 new transactions
-- second file rerun: 0 additional transactions
-
-After the final run, the warehouse remained at 1,000 unique invoices and all data quality checks passed.
-
-## Warehouse tables
-
-The warehouse has one fact table and six dimension tables.
-
-### Dimensions
-
-- `dim_branch` — branch and city
-- `dim_product_line` — product category
-- `dim_customer_segment` — customer type and gender
-- `dim_payment` — payment method
-- `dim_date` — date attributes
-- `dim_time` — time and time-of-day attributes
+## Data model
 
 ### Fact table
 
-`fact_sales` stores one row per invoice transaction.
+`fact_sales`
 
-It contains the dimension keys along with measures such as:
+Grain: **one row per invoice transaction**
 
-- quantity
-- unit price
-- tax
-- total
-- COGS
-- gross income
-- rating
+### Dimensions
 
-The grain of `fact_sales` is **one row per invoice transaction**.
+* `dim_branch`
+* `dim_product_line`
+* `dim_customer_segment`
+* `dim_payment`
+* `dim_date`
+* `dim_time`
 
 ## Star schema
 
@@ -113,90 +59,85 @@ flowchart LR
     time[dim_time] --> fact
 ```
 
-## Technical highlights
+## Data quality
 
-- Built raw, staging, and warehouse schemas in PostgreSQL
-- Designed a star schema with six dimensions and one fact table
-- Used surrogate keys and foreign keys to connect the warehouse tables
-- Profiled and checked the source data before loading the warehouse
-- Compared staging and warehouse totals after the load
-- Created reusable reporting views
-- Used joins, CTEs, window functions, aggregations, and ranking functions
-- Added indexes to the fact table
-- Used `ANALYZE` and `EXPLAIN ANALYZE` to look at query performance
-- Added Python scripts to automate the warehouse load
+The pipeline checks:
 
-## Data quality checks
+* row-count reconciliation
+* duplicate invoices
+* revenue reconciliation
+* quantity reconciliation
+* gross income reconciliation
+* missing dimension keys
 
-Before building the warehouse, I checked for:
+Final validated totals:
 
-- missing invoice IDs
-- duplicate invoices
-- invalid quantities
-- invalid prices and totals
-- ratings outside the expected range
-- inconsistent branch and city combinations
-- incorrect COGS, tax, total, and gross income calculations
+* 1,000 fact rows
+* 1,000 unique invoices
+* revenue: 322,966.7490
+* quantity: 5,510
+* gross income: 15,379.3690
+* missing dimension keys: 0
 
-After loading the warehouse, I compared the staging table with `fact_sales`.
+## Incremental loading
 
-The final checks matched:
+Incoming files are checked against existing invoice IDs so only new transactions are added.
 
-- 1,000 staging rows
-- 1,000 fact rows
-- total revenue: 322,966.7490
-- total quantity: 5,510
-- gross income: 15,379.3690
-- no missing foreign keys
+The pipeline was tested with:
 
-These checks now also run automatically at the end of the Python pipeline.
+* initial load: 990 transactions
+* second load: 10 new transactions
+* second file rerun: 0 additional transactions
 
-## A few things I found
+This keeps the pipeline idempotent and prevents duplicate sales records when the same file is processed again.
 
-Some of the SQL analysis showed that:
+## Airflow orchestration
 
-- Branch C in Naypyitaw had the highest total revenue
-- Food and beverages had the highest overall product-line revenue
-- Afternoon was the busiest time of day
-- The highest-revenue product category was different for each branch
-- Ewallet had the most transactions, while Cash generated the most revenue
-- January had the highest monthly revenue
-- Member/Female was the highest-revenue customer segment
+The Airflow DAG runs the pipeline in this order:
 
-These results were queried from the warehouse rather than directly from the CSV.
+```text
+wait_for_sales_file
+→ load_raw
+→ load_staging
+→ load_warehouse
+→ quality_checks
+→ archive_file
+```
+
+The DAG runs daily, includes two retries per task, and keeps task-level logs for troubleshooting.
 
 ## Reporting views
 
-I created a few views to make common queries easier:
+The warehouse includes reusable views for common reporting needs:
 
-- `vw_sales_detail`
-- `vw_branch_performance`
-- `vw_monthly_performance`
+* `vw_sales_detail`
+* `vw_branch_performance`
+* `vw_monthly_performance`
 
-## Tools used
+SQL reporting queries are also included for branch, product, customer, payment, and time-based analysis.
 
-- PostgreSQL
-- Python
-- SQL
-- DBeaver
-- VS Code
-- Git
-- GitHub
+## Tech stack
+
+* PostgreSQL
+* Python
+* SQL
+* Apache Airflow
+* DBeaver
+* VS Code
+* Git
+* GitHub
 
 ## Project structure
 
 ```text
 supermarket-sales-warehouse/
+├── airflow/
+│   └── dags/
+│       └── supermarket_pipeline_dag.py
 ├── data/
 │   └── README.md
 ├── python/
-│   ├── load_raw.py
-│   ├── load_staging.py
-│   ├── load_warehouse.py
-│   ├── quality_checks.py
-│   └── run_pipeline.py
 ├── sql/
-│   └── numbered SQL scripts for setup, loading, validation, reporting, analysis, and performance
 ├── docs/
 │   ├── data_dictionary.md
 │   └── star_schema.md
@@ -205,7 +146,7 @@ supermarket-sales-warehouse/
 └── README.md
 ```
 
-## How to run the project
+## Run locally
 
 Create a PostgreSQL database called:
 
@@ -213,42 +154,33 @@ Create a PostgreSQL database called:
 supermarket_dw
 ```
 
-Run the SQL setup files to create the schemas and tables.
-
-The source dataset is not included in the repository. See `data/README.md` for the dataset information.
-
-Create a virtual environment:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-Install the required packages:
+Install the Python dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Create a local `.env` file using `.env.example` as a guide.
-
-Then run:
+Create a local `.env` file based on `.env.example`, then run the pipeline with:
 
 ```bash
-python python/run_pipeline.py
+python python/run_pipeline.py <csv_file>
 ```
 
-This loads the raw data, builds the staging and warehouse tables, and runs the final quality checks.
+The Airflow DAG is located at:
+
+```text
+airflow/dags/supermarket_pipeline_dag.py
+```
 
 ## Dataset
 
-This project uses a public supermarket sales dataset with 1,000 transactions from three branches.
+This project uses a public supermarket sales dataset containing 1,000 transactions from three branches.
 
-I renamed the source column headers to `snake_case` before loading the file into PostgreSQL.
+The source column headers were renamed to `snake_case` before loading the data into PostgreSQL.
 
 The dataset itself is not included in this repository.
 
 ## Documentation
 
-- [Data dictionary](docs/data_dictionary.md)
-- [Star schema](docs/star_schema.md)
+* [Data dictionary](docs/data_dictionary.md)
+* [Star schema](docs/star_schema.md)
