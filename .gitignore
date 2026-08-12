@@ -4,3 +4,7 @@ data/supermarket_sales_clean.csv
 .env
 .venv/
 data/incoming/*.csv
+.airflow-venv/
+airflow/
+data/landing/*.csv
+data/processed/*.csv
