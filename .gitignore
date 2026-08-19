@@ -10,3 +10,7 @@ airflow/*
 !airflow/dags/**
 data/landing/*.csv
 data/processed/*.csv
+# Python cache files
+__pycache__/
+*.py[cod]
+

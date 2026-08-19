@@ -2,25 +2,27 @@
 
 A PostgreSQL data warehouse built from a public supermarket sales dataset with 1,000 transactions across three branches.
 
-The project covers the full flow from raw ingestion to reporting, with incremental loading, automated data quality checks, and Airflow orchestration.
+The project covers the full flow from S3 file ingestion to reporting, with incremental loading, automated data quality checks, and Airflow orchestration.
 
 ## Architecture
 
 ```text
-Incoming CSV
+S3 incoming/
+→ Download CSV
 → Raw
 → Staging
 → Dimensions
 → Fact table
 → Data quality checks
+→ S3 processed/
 → Reporting
 ```
 
-Airflow manages the workflow, detects incoming files, runs the pipeline, and moves successfully processed files to a processed folder.
+Airflow manages the workflow, detects incoming CSV files in Amazon S3, downloads them with Boto3, runs the pipeline, and moves successfully processed files to the `processed/` folder.
 
 ## What it does
 
-* Loads sales data into PostgreSQL
+* Loads sales data from Amazon S3 into PostgreSQL
 * Separates raw, staging, and warehouse layers
 * Uses incremental loading based on `invoice_id`
 * Prevents duplicate transactions when files are reprocessed
@@ -28,6 +30,8 @@ Airflow manages the workflow, detects incoming files, runs the pipeline, and mov
 * Runs source-to-warehouse reconciliation checks
 * Creates reusable reporting views
 * Uses Airflow for scheduling, retries, file sensing, task dependencies, and logging
+* Uses Boto3 to download and archive files in S3
+* Skips the pipeline when no new file is available
 * Archives processed files after a successful run
 
 ## Data model
@@ -96,15 +100,39 @@ This keeps the pipeline idempotent and prevents duplicate sales records when the
 The Airflow DAG runs the pipeline in this order:
 
 ```text
-wait_for_sales_file
+wait_for_s3_file
+→ download_file
 → load_raw
-→ load_staging
-→ load_warehouse
-→ quality_checks
+→ load_staging_task
+→ load_warehouse_task
+→ quality_checks_task
 → archive_file
 ```
 
 The DAG runs daily, includes two retries per task, and keeps task-level logs for troubleshooting.
+
+If no new CSV is available in the S3 `incoming/` folder, the sensor and downstream tasks are skipped instead of failing the DAG run.
+
+## Amazon S3 workflow
+
+New CSV files are uploaded to:
+
+```text
+incoming/
+```
+
+After a successful pipeline run, the files are moved to:
+
+```text
+processed/
+```
+
+Example:
+
+```text
+incoming/new_sales.csv
+→ processed/new_sales.csv
+```
 
 ## Reporting views
 
@@ -122,6 +150,8 @@ SQL reporting queries are also included for branch, product, customer, payment, 
 * Python
 * SQL
 * Apache Airflow
+* Amazon S3
+* Boto3
 * DBeaver
 * VS Code
 * Git
@@ -137,11 +167,16 @@ supermarket-sales-warehouse/
 ├── data/
 │   └── README.md
 ├── python/
+│   ├── archive_s3_file.py
+│   ├── download_from_s3.py
+│   ├── list_s3_files.py
+│   └── run_pipeline.py
 ├── sql/
 ├── docs/
 │   ├── data_dictionary.md
 │   └── star_schema.md
 ├── .env.example
+├── .gitignore
 ├── requirements.txt
 └── README.md
 ```
@@ -160,7 +195,11 @@ Install the Python dependencies:
 pip install -r requirements.txt
 ```
 
-Create a local `.env` file based on `.env.example`, then run the pipeline with:
+Create a local `.env` file based on `.env.example`.
+
+Configure AWS access locally. AWS credentials should not be added to the repository.
+
+Run the Python pipeline with:
 
 ```bash
 python python/run_pipeline.py <csv_file>

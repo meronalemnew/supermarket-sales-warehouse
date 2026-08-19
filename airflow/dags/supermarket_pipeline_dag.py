@@ -1,4 +1,3 @@
-import shutil
 import sys
 from datetime import timedelta
 from pathlib import Path
@@ -12,14 +11,14 @@ python_dir = project_root / "python"
 
 sys.path.insert(0, str(python_dir))
 
+
+from list_s3_files import list_incoming_files
+from download_from_s3 import download_from_s3
 from load_raw_incremental import load_incremental_raw
 from load_staging import load_staging
 from load_warehouse import load_warehouse
 from quality_checks import run_quality_checks
-
-
-landing_dir = project_root / "data" / "landing"
-processed_dir = project_root / "data" / "processed"
+from archive_s3_file import archive_s3_file
 
 
 default_args = {
@@ -39,7 +38,7 @@ default_args = {
     ),
     catchup=False,
     default_args=default_args,
-    tags=["supermarket", "data-engineering"],
+    tags=["supermarket", "data-engineering", "aws"],
 )
 def supermarket_pipeline():
 
@@ -47,23 +46,28 @@ def supermarket_pipeline():
         poke_interval=10,
         timeout=300,
         mode="reschedule",
+        soft_fail=True,
     )
-    def wait_for_sales_file() -> PokeReturnValue:
-        files = sorted(landing_dir.glob("*.csv"))
+    def wait_for_s3_file() -> PokeReturnValue:
+        files = list_incoming_files()
 
         if not files:
-            return PokeReturnValue(is_done=False)
-
-        sales_file = str(files[0])
+            return PokeReturnValue(
+                is_done=False
+            )
 
         return PokeReturnValue(
             is_done=True,
-            xcom_value=sales_file,
+            xcom_value=files[0],
         )
 
     @task
-    def load_raw(file_path: str):
-        load_incremental_raw(file_path)
+    def download_file(s3_key: str):
+        return download_from_s3(s3_key)
+
+    @task
+    def load_raw(local_file: str):
+        load_incremental_raw(local_file)
 
     @task
     def load_staging_task():
@@ -78,23 +82,32 @@ def supermarket_pipeline():
         run_quality_checks()
 
     @task
-    def archive_file(file_path: str):
-        processed_dir.mkdir(exist_ok=True)
+    def archive_file(
+        s3_key: str,
+        local_file: str,
+    ):
+        archive_s3_file(s3_key)
 
-        source = Path(file_path)
-        destination = processed_dir / source.name
+        local_path = Path(local_file)
 
-        shutil.move(str(source), str(destination))
+        if local_path.exists():
+            local_path.unlink()
+            print(
+                f"Removed local file: {local_path}"
+            )
 
-        print(f"Archived file: {destination}")
+    s3_key = wait_for_s3_file()
 
-    sales_file = wait_for_sales_file()
+    local_file = download_file(s3_key)
 
-    raw = load_raw(sales_file)
+    raw = load_raw(local_file)
     staging = load_staging_task()
     warehouse = load_warehouse_task()
     quality = quality_checks_task()
-    archive = archive_file(sales_file)
+    archive = archive_file(
+        s3_key,
+        local_file,
+    )
 
     raw >> staging >> warehouse >> quality >> archive
 
