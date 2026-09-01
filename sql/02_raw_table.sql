@@ -1,6 +1,4 @@
-DROP TABLE IF EXISTS raw.supermarket_sales;
-
-CREATE TABLE raw.supermarket_sales (
+CREATE TABLE IF NOT EXISTS raw.supermarket_sales (
     invoice_id TEXT,
     branch TEXT,
     city TEXT,

@@ -1,13 +1,19 @@
+-- =========================================================
+-- Supermarket Sales Warehouse
+-- Portfolio Analysis Queries
+-- =========================================================
+
+
 -- Revenue by branch
 SELECT
-    b.branch_code,
+    b.branch,
     b.city,
     SUM(f.total) AS total_revenue
-FROM warehouse.fact_sales f
-JOIN warehouse.dim_branch b
+FROM dbt_dev.fact_sales f
+JOIN dbt_dev.dim_branch b
     ON f.branch_key = b.branch_key
 GROUP BY
-    b.branch_code,
+    b.branch,
     b.city
 ORDER BY total_revenue DESC;
 
@@ -16,10 +22,11 @@ ORDER BY total_revenue DESC;
 SELECT
     p.product_line,
     SUM(f.total) AS total_revenue
-FROM warehouse.fact_sales f
-JOIN warehouse.dim_product_line p
+FROM dbt_dev.fact_sales f
+JOIN dbt_dev.dim_product_line p
     ON f.product_line_key = p.product_line_key
-GROUP BY p.product_line
+GROUP BY
+    p.product_line
 ORDER BY total_revenue DESC;
 
 
@@ -30,8 +37,8 @@ SELECT
     COUNT(*) AS transaction_count,
     SUM(f.total) AS total_revenue,
     ROUND(AVG(f.total), 2) AS avg_transaction_value
-FROM warehouse.fact_sales f
-JOIN warehouse.dim_customer_segment c
+FROM dbt_dev.fact_sales f
+JOIN dbt_dev.dim_customer_segment c
     ON f.customer_segment_key = c.customer_segment_key
 GROUP BY
     c.customer_type,
@@ -45,10 +52,11 @@ SELECT
     COUNT(*) AS transaction_count,
     SUM(f.total) AS total_revenue,
     ROUND(AVG(f.total), 2) AS avg_transaction_value
-FROM warehouse.fact_sales f
-JOIN warehouse.dim_time t
+FROM dbt_dev.fact_sales f
+JOIN dbt_dev.dim_time t
     ON f.time_key = t.time_key
-GROUP BY t.time_of_day
+GROUP BY
+    t.time_of_day
 ORDER BY total_revenue DESC;
 
 
@@ -59,8 +67,8 @@ SELECT
     d.month_name,
     COUNT(*) AS transaction_count,
     SUM(f.total) AS total_revenue
-FROM warehouse.fact_sales f
-JOIN warehouse.dim_date d
+FROM dbt_dev.fact_sales f
+JOIN dbt_dev.dim_date d
     ON f.date_key = d.date_key
 GROUP BY
     d.year,
@@ -73,12 +81,13 @@ ORDER BY
 
 -- Payment method performance
 SELECT
-    pm.payment_method,
+    p.payment,
     COUNT(*) AS transaction_count,
     SUM(f.total) AS total_revenue,
     ROUND(AVG(f.total), 2) AS avg_transaction_value
-FROM warehouse.fact_sales f
-JOIN warehouse.dim_payment pm
-    ON f.payment_key = pm.payment_key
-GROUP BY pm.payment_method
+FROM dbt_dev.fact_sales f
+JOIN dbt_dev.dim_payment p
+    ON f.payment_key = p.payment_key
+GROUP BY
+    p.payment
 ORDER BY total_revenue DESC;

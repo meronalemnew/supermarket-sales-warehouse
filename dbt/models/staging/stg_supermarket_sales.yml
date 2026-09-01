@@ -1,0 +1,12 @@
+version: 2
+
+models:
+  - name: stg_supermarket_sales
+    description: Cleaned and typed supermarket sales transactions
+
+    columns:
+      - name: invoice_id
+        description: Unique identifier for each sales transaction
+        data_tests:
+          - not_null
+          - unique

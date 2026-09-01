@@ -6,13 +6,11 @@ import boto3
 
 BUCKET_NAME = "meron-supermarket-data-pipeline"
 PROCESSED_PREFIX = "processed/"
-AWS_PROFILE = "supermarket-dev"
 AWS_REGION = "us-east-1"
 
 
 def archive_s3_file(source_key):
     session = boto3.Session(
-        profile_name=AWS_PROFILE,
         region_name=AWS_REGION,
     )
 

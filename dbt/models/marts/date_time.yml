@@ -1,0 +1,45 @@
+version: 2
+
+models:
+  - name: dim_date
+    description: One row per sales date
+
+    columns:
+      - name: date_key
+        description: Date key in YYYYMMDD format
+        data_tests:
+          - not_null
+          - unique
+
+      - name: sale_date
+        description: Calendar date of the transaction
+        data_tests:
+          - not_null
+          - unique
+
+  - name: dim_time
+    description: One row per unique sales time
+
+    columns:
+      - name: time_key
+        description: Time key in HHMM format
+        data_tests:
+          - not_null
+          - unique
+
+      - name: sale_time
+        description: Time of the transaction
+        data_tests:
+          - not_null
+          - unique
+
+      - name: time_of_day
+        description: Morning, afternoon, or evening category
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - Morning
+                  - Afternoon
+                  - Evening

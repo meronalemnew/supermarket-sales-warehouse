@@ -5,7 +5,6 @@ import boto3
 
 
 BUCKET_NAME = "meron-supermarket-data-pipeline"
-AWS_PROFILE = "supermarket-dev"
 AWS_REGION = "us-east-1"
 
 
@@ -20,7 +19,6 @@ def download_from_s3(s3_key):
     local_file = landing_dir / file_name
 
     session = boto3.Session(
-        profile_name=AWS_PROFILE,
         region_name=AWS_REGION,
     )
 

@@ -1,16 +1,73 @@
+# ---------------------------------------------------------
+# macOS / editor files
+# ---------------------------------------------------------
+
 .DS_Store
 .vscode/
-data/supermarket_sales_clean.csv
+
+
+# ---------------------------------------------------------
+# Environment variables / secrets
+# ---------------------------------------------------------
+
 .env
+
+
+# ---------------------------------------------------------
+# Python virtual environments
+# ---------------------------------------------------------
+
 .venv/
-data/incoming/*.csv
 .airflow-venv/
-airflow/*
-!airflow/dags/
-!airflow/dags/**
-data/landing/*.csv
-data/processed/*.csv
+.dbt-venv/
+
+
+# ---------------------------------------------------------
 # Python cache files
+# ---------------------------------------------------------
+
 __pycache__/
 *.py[cod]
+.pytest_cache/
 
+
+# ---------------------------------------------------------
+# Local data files
+# ---------------------------------------------------------
+
+data/supermarket_sales_clean.csv
+data/incoming/*.csv
+data/landing/*.csv
+data/processed/*.csv
+
+
+# ---------------------------------------------------------
+# Airflow local runtime files
+# ---------------------------------------------------------
+
+airflow/*
+
+# Keep Airflow DAG source code
+!airflow/dags/
+!airflow/dags/**
+
+# Ignore generated Python cache inside DAG folder
+airflow/dags/__pycache__/
+airflow/dags/**/*.pyc
+
+
+# ---------------------------------------------------------
+# dbt generated files
+# ---------------------------------------------------------
+
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/
+
+
+# ---------------------------------------------------------
+# General logs
+# ---------------------------------------------------------
+
+logs/
+*.log

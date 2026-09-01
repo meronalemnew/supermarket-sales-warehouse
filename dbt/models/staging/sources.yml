@@ -1,0 +1,10 @@
+version: 2
+
+sources:
+  - name: raw
+    description: Raw supermarket sales data loaded by the Python pipeline
+    schema: raw
+
+    tables:
+      - name: supermarket_sales
+        description: Source sales transactions before cleaning and transformation

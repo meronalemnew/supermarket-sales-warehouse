@@ -3,13 +3,11 @@ import boto3
 
 BUCKET_NAME = "meron-supermarket-data-pipeline"
 INCOMING_PREFIX = "incoming/"
-AWS_PROFILE = "supermarket-dev"
 AWS_REGION = "us-east-1"
 
 
 def list_incoming_files():
     session = boto3.Session(
-        profile_name=AWS_PROFILE,
         region_name=AWS_REGION,
     )
 
@@ -26,7 +24,6 @@ def list_incoming_files():
         for obj in page.get("Contents", []):
             key = obj["Key"]
 
-            # Skip the folder marker itself
             if key == INCOMING_PREFIX:
                 continue
 
